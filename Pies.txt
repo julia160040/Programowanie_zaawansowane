@@ -1,0 +1,51 @@
+import java.io.Serializable;
+public class Pies implements Serializable {
+    private String rasa;
+
+    public Pies(String rasa){
+        this.rasa=rasa;
+    }
+
+    public String getRasa() {
+        return rasa;
+    }
+   @Override
+   public String toString(){
+        return "Pies{" + "rasa: '" + rasa + '\'' + '}';
+   }
+}
+---------------------------
+import java.io.Serializable;
+public class Kot implements Serializable{
+    private String imie;
+
+    public Kot(String imie){
+        this.imie=imie;
+    }
+
+    public String getImie() {
+        return imie;
+    }
+    @Override
+    public String toString(){
+        return "Kot{" + "imie: '" + imie + '\'' + '}';
+    }
+}
+-------------------------------
+import java.io.Serializable;
+public class Ryba implements Serializable {
+    private String gatunek;
+
+    public Ryba(String gatunek){
+        this.gatunek=gatunek;
+    }
+
+    public String getGatunek() {
+        return gatunek;
+    }
+    @Override
+    public String toString(){
+        return "Ryba{" + "gatunek: '" + gatunek + '\'' + '}';
+    }
+}
+

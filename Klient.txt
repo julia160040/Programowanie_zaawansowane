@@ -1,0 +1,51 @@
+import java.io.*;
+import java.net.*;
+import java.util.List;
+
+public class Klient {
+    public static void main(String[] args) {
+        for (int i = 1; i <= 5; i++) {
+            final int clientId = i;
+            new Thread(() -> {
+
+                requestObjects(clientId, "Kot");
+                requestObjects(clientId, "Pies");
+                requestObjects(clientId, "Ryba");
+            }).start();
+        }
+    }
+
+    private static void requestObjects(int clientId, String objType) {
+        try (Socket socket = new Socket("127.0.0.1", 1899);
+             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+
+            out.writeInt(clientId);
+            out.flush();
+
+            String status = (String) in.readObject();
+            if ("REFUSED".equals(status)) {
+                System.out.println("Klient " + clientId + ": Odmowa połączenia");
+                return;
+            } else {
+                System.out.println("Klient " + clientId + ": Połączenie zaakceptowane");
+            }
+
+            for (int i = 0; i < 3; i++) {
+                out.writeObject("get_" + objType);
+                out.flush();
+
+                Object response = in.readObject();
+                if (response instanceof String) {
+                    System.out.println("Klient " + clientId + ": " + response);
+                } else {
+                    List<?> objects = (List<?>) response;
+                    System.out.println("Klient " + clientId + " Otrzymano " + objType + " Kolekcja: " + objects);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}

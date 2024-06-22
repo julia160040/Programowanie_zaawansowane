@@ -1,0 +1,97 @@
+import java.io.*;
+import java.net.*;
+import java.util.*;
+import java.util.concurrent.*;
+
+public class Serwer {
+    private static final int MAX_CLIENTS = 5;
+    private static final Map<String, List<Serializable>> objectsMap = new ConcurrentHashMap<>();
+    private static final Set<Integer> activeClients = Collections.newSetFromMap(new ConcurrentHashMap<>());
+
+    public static void main(String[] args) throws IOException {
+        objectsMap.put("Pies", Arrays.asList(
+                new Pies("Maltańczyk"),
+                new Pies("Labrador"),
+                new Pies("Mops"),
+                new Pies("Golden Retriver")
+        ));
+        objectsMap.put("Kot", Arrays.asList(
+                new Kot("Filemon"),
+                new Kot("Bonifacy"),
+                new Kot("Klakier"),
+                new Kot("Garfild")
+        ));
+
+        objectsMap.put("Ryba", Arrays.asList(
+            new Ryba("Okoń"),
+            new Ryba("Sandacz"),
+            new Ryba("Sum"),
+            new Ryba("Karp")
+        ));
+
+        ServerSocket serverSocket = new ServerSocket(1899);
+        System.out.println("Serwer uruchomiony na porcie 1899");
+
+        while (true) {
+            Socket clientSocket = serverSocket.accept();
+            new Thread(new ClientHandler(clientSocket)).start();
+        }
+    }
+
+    private static class ClientHandler implements Runnable {
+        private final Socket clientSocket;
+        private int clientId;
+
+        public ClientHandler(Socket clientSocket) {
+            this.clientSocket = clientSocket;
+        }
+
+        @Override
+        public void run() {
+            try (ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
+                 ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream())) {
+
+                clientId = in.readInt();
+                synchronized (activeClients) {
+                    if (activeClients.size() >= MAX_CLIENTS) {
+                        out.writeObject("ODMOWA");
+                        System.out.println("Klient " + clientId + " Odmowa: za duzo klientów");
+                        return;
+                    } else {
+                        activeClients.add(clientId);
+                        out.writeObject("OK");
+                        System.out.println("Klient " + clientId + " Zaakceptowano");
+                    }
+                }
+
+                for (int i = 0; i < 3; i++) {
+                    String request = (String) in.readObject();
+                    String objectType = request.split("_")[1];
+
+                    List<Serializable> collection = (List<Serializable>) objectsMap.getOrDefault(objectType, Collections.emptyList());
+
+                    if (collection.isEmpty()) {
+                        out.writeObject("Brak obiektów");
+                    } else {
+                        out.writeObject(collection);
+                    }
+
+                    System.out.println("Wysłano " + objectType + " kolekcja do klienta " + clientId);
+                    Thread.sleep((int) (Math.random() * 1000));
+                }
+            } catch (Exception e){
+                e.printStackTrace();
+            } finally {
+                synchronized (activeClients){
+                    activeClients.remove(clientId);
+                }
+                try {
+                    clientSocket.close();
+                } catch (IOException e){
+                    e.printStackTrace();
+                }
+            }
+
+        }
+    }
+}
